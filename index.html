@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
 /* ─── JSONBIN CONFIG ─── */
 var BIN_KEY = '$2a$10$YQtpXheoXVrQaXo3Sch4G..IWw/ZuAWYFnc1XPBxa82aBCieCR6XC';
 var BIN_URL = 'https://api.jsonbin.io/v3/b';
-var BINID_KEY = 'lk3_binid';
+var BIN_ID = '69fb191baaba88219779cfcf';
 var CACHE_KEY = 'lk3_cache';
 
 var isOnline = navigator.onLine;
@@ -306,28 +306,8 @@ window.addEventListener('offline', function() {
   document.getElementById('offlineBanner').style.display = 'block';
 });
 
-async function getBinId() {
-  var id = localStorage.getItem(BINID_KEY);
-  if (id) return id;
-  var res = await fetch(BIN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Master-Key': BIN_KEY,
-      'X-Bin-Name': 'lonnkalkulator-faizan',
-      'X-Bin-Private': 'true'
-    },
-    body: JSON.stringify({ shifts: {}, settings: settings })
-  });
-  var json = await res.json();
-  id = json.metadata.id;
-  localStorage.setItem(BINID_KEY, id);
-  return id;
-}
-
 async function cloudLoad() {
-  var id = await getBinId();
-  var res = await fetch(BIN_URL + '/' + id + '/latest', {
+  var res = await fetch(BIN_URL + '/' + BIN_ID + '/latest', {
     headers: { 'X-Master-Key': BIN_KEY },
     cache: 'no-store'
   });
@@ -339,8 +319,7 @@ async function cloudSave() {
   var data = { shifts: shifts, settings: settings };
   localStorage.setItem(CACHE_KEY, JSON.stringify(data));
   try {
-    var id = await getBinId();
-    await fetch(BIN_URL + '/' + id, {
+    await fetch(BIN_URL + '/' + BIN_ID, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
       body: JSON.stringify(data)
