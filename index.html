@@ -328,7 +328,8 @@ async function getBinId() {
 async function cloudLoad() {
   var id = await getBinId();
   var res = await fetch(BIN_URL + '/' + id + '/latest', {
-    headers: { 'X-Master-Key': BIN_KEY }
+    headers: { 'X-Master-Key': BIN_KEY },
+    cache: 'no-store'
   });
   var json = await res.json();
   return json.record;
