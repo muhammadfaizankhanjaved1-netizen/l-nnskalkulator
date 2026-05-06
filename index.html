@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lønn">
+<meta name="theme-color" content="#0b0c10">
+<title>Lønnkalkulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0c10;--sf:#13151b;--s2:#1a1d26;--br:#272b38;--br2:#353a4a;
+  --ac:#3ddc84;--ac-dim:rgba(61,220,132,.12);
+  --yel:#f0c040;--red:#f06060;--blue:#60b0fa;
+  --tx:#dde1ee;--mu:#5c6275;--mu2:#8890a6;
+  --mo:'DM Mono',monospace;--sa:'Plus Jakarta Sans',sans-serif;
+  --r:10px;--rl:16px
+}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.app{max-width:500px;margin:0 auto;padding:0 16px 120px}
+
+/* LOADING */
+#loadScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:200}
+.spinner{width:36px;height:36px;border:3px solid var(--br);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadScreen .load-txt{font-size:11px;color:var(--mu2);font-family:var(--mo)}
+
+/* OFFLINE BANNER */
+#offlineBanner{background:#1a0a00;color:#ff9966;font-size:10px;text-align:center;padding:7px 16px;display:none;font-family:var(--mo);letter-spacing:.3px}
+
+/* HEADER */
+.hdr{position:-webkit-sticky;position:sticky;top:0;background:var(--bg);z-index:20;display:flex;align-items:center;justify-content:space-between;padding:18px 0 14px;border-bottom:1px solid var(--br);margin-bottom:18px}
+.hdr-title{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.hdr-title span{color:var(--ac)}
+.hdr-sub{font-size:10px;color:var(--mu2);font-family:var(--mo);margin-top:2px}
+.hdr-btn{background:var(--s2);border:1px solid var(--br);color:var(--mu2);font-family:var(--mo);font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;-webkit-appearance:none;appearance:none;white-space:nowrap}
+.hdr-btn.on{background:var(--br);color:var(--tx)}
+.hdr-btn.spinning{animation:spin .8s linear infinite;display:inline-block}
+
+/* SETTINGS */
+.stg{display:none;background:var(--sf);border:1px solid var(--br);border-radius:var(--rl);padding:18px;margin-bottom:18px}
+.stg.open{display:block}
+.stg-grp{margin-bottom:16px}
+.stg-grp:last-child{margin-bottom:0}
+.stg-lbl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mo);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--br)}
+.rr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.rr label{font-size:12px;color:var(--tx);flex:1}
+.rr .unit{font-size:10px;color:var(--mu2);font-family:var(--mo)}
+.rr input[type=number]{width:78px;background:var(--bg);border:1px solid var(--br);border-radius:7px;color:var(--tx);font-family:var(--mo);font-size:13px;padding:7px 8px;outline:none;text-align:right;-webkit-appearance:none;appearance:none;-moz-appearance:textfield}
+.rr input[type=number]::-webkit-inner-spin-button,.rr input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.rr input[type=number]:focus{border-color:var(--ac)}
+.stg-hint{font-size:10px;color:var(--mu);font-family:var(--mo);margin-top:-2px;line-height:1.6}
+
+/* BANNER */
+.banner{background:var(--sf);border:1px solid var(--br);border-radius:var(--rl);padding:18px 20px;margin-bottom:20px;position:relative;overflow:hidden}
+.banner::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(circle,rgba(61,220,132,.06) 0%,transparent 70%);pointer-events:none}
+.b-lbl{font-size:10px;color:var(--mu2);text-transform:uppercase;letter-spacing:1px;font-family:var(--mo);margin-bottom:4px}
+.b-amt{font-size:32px;font-weight:800;color:var(--ac);font-family:var(--mo);letter-spacing:-1px;line-height:1}
+.b-pills{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pill{font-size:11px;font-family:var(--mo);color:var(--mu2);background:var(--s2);border:1px solid var(--br);border-radius:20px;padding:3px 10px}
+.pill .v{color:var(--tx)}
+.pill.net .v{color:var(--blue)}
+
+/* MONTH NAV */
+.mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mnav-btn{background:var(--s2);border:1px solid var(--br);color:var(--tx);width:36px;height:36px;border-radius:9px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;-webkit-appearance:none;appearance:none;flex-shrink:0}
+.mnav-c{text-align:center}
+.mnav-month{font-size:16px;font-weight:700}
+.mnav-year{font-size:11px;color:var(--mu2);font-family:var(--mo)}
+.today-link{display:block;text-align:center;font-size:10px;color:var(--mu);font-family:var(--mo);cursor:pointer;padding:4px;margin-bottom:8px}
+
+/* CALENDAR */
+.wdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.wdays span{text-align:center;font-size:9px;font-family:var(--mo);color:var(--mu);padding:2px 0 4px;text-transform:uppercase}
+.wdays span.we{color:var(--yel);opacity:.75}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:22px}
+.day{aspect-ratio:1/1;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:40px;-webkit-user-select:none;user-select:none}
+.day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.day.today{border-color:var(--ac)}
+.day.has{background:var(--ac-dim);border-color:var(--ac)}
+.day.today.has{background:rgba(61,220,132,.18)}
+.day.we-day .dn{color:var(--yel)}
+.dn{font-size:12px;font-family:var(--mo);font-weight:500;line-height:1}
+.dot{width:5px;height:5px;background:var(--ac);border-radius:50%;margin-top:3px}
+.mini{font-size:7px;color:var(--ac);font-family:var(--mo);margin-top:1px;line-height:1}
+
+/* SHIFT LIST */
+.slist-ttl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mo);margin-bottom:10px}
+.sc{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.sc-day{font-size:14px;font-weight:700}
+.sc-time{font-size:11px;color:var(--mu2);font-family:var(--mo);margin-top:2px}
+.sc-amt{font-size:16px;font-weight:700;font-family:var(--mo);color:var(--ac);text-align:right}
+.sc-sub{font-size:10px;color:var(--mu2);font-family:var(--mo);text-align:right;margin-top:1px}
+.sc-sub.net{color:var(--blue)}
+.empty-state{padding:36px 20px;text-align:center;color:var(--mu);font-size:13px;line-height:1.8}
+.empty-state .ico{font-size:30px;margin-bottom:10px}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);z-index:100;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.overlay.open{display:-webkit-flex;display:flex}
+@media(min-width:580px){
+  .overlay{align-items:center;padding:20px}
+  .modal{border-radius:var(--rl)!important;max-width:460px;padding-bottom:24px!important}
+  .drag-bar{display:none!important}
+}
+.modal{background:var(--sf);border:1px solid var(--br);border-radius:20px 20px 0 0;padding:8px 20px 36px;width:100%;max-height:92vh;overflow-y:auto;-webkit-animation:slideUp .25s ease;animation:slideUp .25s ease}
+@-webkit-keyframes slideUp{from{-webkit-transform:translateY(60px);opacity:0}to{-webkit-transform:translateY(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.drag-bar{width:40px;height:4px;background:var(--br2);border-radius:2px;margin:8px auto 14px}
+.modal-ttl{font-size:18px;font-weight:800;letter-spacing:-.4px}
+.modal-sub{font-size:11px;color:var(--mu2);font-family:var(--mo);margin-top:2px;margin-bottom:20px}
+
+/* CUSTOM TIME PICKER */
+.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.fld label{font-size:10px;color:var(--mu2);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mo);display:block;margin-bottom:6px}
+.time-picker{display:flex;align-items:center;gap:0;background:var(--bg);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;height:52px}
+.time-picker.focused{border-color:var(--ac)}
+.tp-sel{flex:1;background:transparent;border:none;color:var(--tx);font-family:var(--mo);font-size:22px;font-weight:500;padding:0 0 0 12px;outline:none;height:100%;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center}
+.tp-sel:focus{outline:none}
+.tp-sel option{background:var(--s2);color:var(--tx);font-size:16px}
+.tp-colon{font-size:22px;font-weight:500;color:var(--mu2);font-family:var(--mo);padding:0 2px;flex-shrink:0;line-height:1;user-select:none}
+
+/* BREAKDOWN */
+.bk{background:var(--bg);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:16px}
+.bk-ttl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mo);margin-bottom:10px}
+.bk-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:8px;font-family:var(--mo);font-size:11px}
+.bk-row.dim{color:var(--mu)}
+.bk-row.on{color:var(--tx)}
+.bk-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-v{white-space:nowrap;text-align:right}
+.bk-v .g{color:var(--ac)}
+.bk-sep{border:none;border-top:1px solid var(--br);margin:8px 0}
+.bk-tot{display:flex;justify-content:space-between;font-family:var(--mo);font-size:14px;font-weight:600;margin-bottom:4px}
+.bk-tot .g{color:var(--ac)}
+.bk-net{display:flex;justify-content:space-between;font-family:var(--mo);font-size:11px;color:var(--mu2)}
+.bk-net .b{color:var(--blue)}
+
+/* MODAL BUTTONS */
+.modal-btns{display:flex;gap:10px}
+.mbtn{-webkit-flex:1;flex:1;padding:14px;border-radius:11px;border:none;font-family:var(--sa);font-size:15px;font-weight:700;cursor:pointer;min-height:50px;display:-webkit-flex;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-appearance:none;appearance:none}
+.mbtn-save{background:var(--ac);color:#000}
+.mbtn-del{background:rgba(240,96,96,.1);color:var(--red);border:1px solid rgba(240,96,96,.2);-webkit-flex:.7;flex:.7}
+.mbtn-cancel{background:var(--s2);color:var(--mu2);border:1px solid var(--br);-webkit-flex:.55;flex:.55}
+
+/* INSTALL HINT */
+.install-hint{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;margin-bottom:18px;font-size:11px;color:var(--mu2);font-family:var(--mo);line-height:1.7;display:none}
+.install-hint.show{display:block}
+.install-hint strong{color:var(--tx)}
+.close-hint{float:right;cursor:pointer;color:var(--mu);font-size:14px;margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadScreen">
+  <div style="font-size:2rem;margin-bottom:4px">💰</div>
+  <div class="spinner"></div>
+  <div class="load-txt">Laster data...</div>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div id="offlineBanner">⚠️ Offline — endringer lagres lokalt og synkroniseres automatisk når nett er tilbake</div>
+
+<div class="app">
+
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">💰 <span>Lønn</span>kalk</div>
+      <div class="hdr-sub">Coop Øst SA · trykk en dag for å legge inn vakt</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="hdr-btn" id="syncBtn" onclick="syncData()" title="Synkroniser">↻</button>
+      <button class="hdr-btn" onclick="exportData()">↑ Eksport</button>
+      <button class="hdr-btn" onclick="openImport()">↓ Importer</button>
+      <button class="hdr-btn" id="stgBtn" onclick="toggleStg()">⚙ Satser</button>
+    </div>
+  </div>
+
+  <!-- iOS install hint -->
+  <div class="install-hint" id="installHint">
+    <span class="close-hint" onclick="this.parentElement.style.display='none'">✕</span>
+    <strong>📱 Legg til på hjem-skjermen:</strong><br>
+    Trykk på Del-knappen (firkant med pil opp) → velg<br>
+    <strong>«Legg til på hjem-skjerm»</strong> → Legg til
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="stg" id="stg">
+    <div class="stg-grp">
+      <div class="stg-lbl">Grunnlønn</div>
+      <div class="rr"><label>Timelønn</label><span class="unit">kr/t</span><input type="number" id="rB" value="132.90" step="0.10" min="0" oninput="onRateChange()"></div>
+    </div>
+    <div class="stg-grp">
+      <div class="stg-lbl">Tillegg hverdager (Man–Fre)</div>
+      <div class="rr"><label>Etter kl 18:00</label><span class="unit">+kr/t</span><input type="number" id="rMF18" value="22" step="0.5" min="0" oninput="onRateChange()"></div>
+      <div class="rr"><label>Etter kl 21:00</label><span class="unit">+kr/t</span><input type="number" id="rMF21" value="45" step="0.5" min="0" oninput="onRateChange()"></div>
+    </div>
+    <div class="stg-grp">
+      <div class="stg-lbl">Tillegg lørdag</div>
+      <div class="rr"><label>Etter kl 13:00</label><span class="unit">+kr/t</span><input type="number" id="rL13" value="45" step="0.5" min="0" oninput="onRateChange()"></div>
+      <div class="rr"><label>Etter kl 15:00</label><span class="unit">+kr/t</span><input type="number" id="rL15" value="55" step="0.5" min="0" oninput="onRateChange()"></div>
+      <div class="rr"><label>Etter kl 18:00</label><span class="unit">+kr/t</span><input type="number" id="rL18" value="110" step="0.5" min="0" oninput="onRateChange()"></div>
+    </div>
+    <div class="stg-grp">
+      <div class="stg-lbl">Skatt</div>
+      <div class="rr"><label>Skattetrekk</label><span class="unit">%</span><input type="number" id="rTax" value="0" step="1" min="0" max="60" oninput="onRateChange()"></div>
+      <div class="stg-hint">0% = frikort · skriv inn trekkprosenten din for å se netto</div>
+    </div>
+  </div>
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="b-lbl">Brutto denne måneden</div>
+    <div class="b-amt" id="bAmt">0,00&nbsp;kr</div>
+    <div class="b-pills">
+      <div class="pill">Timer: <span class="v" id="bHrs">0t</span></div>
+      <div class="pill">Vakter: <span class="v" id="bShifts">0</span></div>
+      <div class="pill net" id="bNetPill" style="display:none">Netto: <span class="v" id="bNet">0,00&nbsp;kr</span></div>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--mu2);font-family:var(--mo)">📅 Utbetales <span id="bPayDate"></span></div>
+  </div>
+
+  <!-- MONTH NAV -->
+  <div class="mnav">
+    <button class="mnav-btn" onclick="chgM(-1)">‹</button>
+    <div class="mnav-c">
+      <div class="mnav-month" id="mMonth"></div>
+      <div class="mnav-year"  id="mYear"></div>
+    </div>
+    <button class="mnav-btn" onclick="chgM(1)">›</button>
+  </div>
+  <span class="today-link" onclick="goToday()">↩ gå til i dag</span>
+
+  <div class="wdays" aria-hidden="true">
+    <span>Man</span><span>Tir</span><span>Ons</span><span>Tor</span><span>Fre</span>
+    <span class="we">Lør</span><span class="we">Søn</span>
+  </div>
+  <div class="cal" id="cal"></div>
+  <div id="slist"></div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="ov" onclick="ovBgClick(event)">
+  <div class="modal">
+    <div class="drag-bar"></div>
+    <div class="modal-ttl" id="mTtl"></div>
+    <div class="modal-sub" id="mSub"></div>
+
+    <div class="time-grid">
+      <div class="fld">
+        <label>Start</label>
+        <div class="time-picker" id="tpStart">
+          <select class="tp-sel" id="iSH" onchange="updBk()"></select>
+          <span class="tp-colon">:</span>
+          <select class="tp-sel" id="iSM" onchange="updBk()"></select>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Slutt</label>
+        <div class="time-picker" id="tpEnd">
+          <select class="tp-sel" id="iEH" onchange="updBk()"></select>
+          <span class="tp-colon">:</span>
+          <select class="tp-sel" id="iEM" onchange="updBk()"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="bk">
+      <div class="bk-ttl">Beregning</div>
+      <div id="bkRows"></div>
+      <hr class="bk-sep">
+      <div class="bk-tot"><span>Brutto</span><span class="g" id="bkTot">—&nbsp;kr</span></div>
+      <div class="bk-net" id="bkNetRow" style="display:none">
+        <span>Netto (etter skatt)</span><span class="b" id="bkNet">—&nbsp;kr</span>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal()">Avbryt</button>
+      <button class="mbtn mbtn-del" id="btnDel" style="display:none" onclick="deleteShift()">🗑 Slett</button>
+      <button class="mbtn mbtn-save" onclick="saveShift()">✓ Lagre</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── JSONBIN CONFIG ─── */
+var BIN_KEY = '$2a$10$YQtpXheoXVrQaXo3Sch4G..IWw/ZuAWYFnc1XPBxa82aBCieCR6XC';
+var BIN_URL = 'https://api.jsonbin.io/v3/b';
+var BINID_KEY = 'lk3_binid';
+var CACHE_KEY = 'lk3_cache';
+
+var isOnline = navigator.onLine;
+
+window.addEventListener('online',  function() {
+  isOnline = true;
+  document.getElementById('offlineBanner').style.display = 'none';
+  cloudSave();
+});
+window.addEventListener('offline', function() {
+  isOnline = false;
+  document.getElementById('offlineBanner').style.display = 'block';
+});
+
+async function getBinId() {
+  var id = localStorage.getItem(BINID_KEY);
+  if (id) return id;
+  var res = await fetch(BIN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': BIN_KEY,
+      'X-Bin-Name': 'lonnkalkulator-faizan',
+      'X-Bin-Private': 'true'
+    },
+    body: JSON.stringify({ shifts: {}, settings: settings })
+  });
+  var json = await res.json();
+  id = json.metadata.id;
+  localStorage.setItem(BINID_KEY, id);
+  return id;
+}
+
+async function cloudLoad() {
+  var id = await getBinId();
+  var res = await fetch(BIN_URL + '/' + id + '/latest', {
+    headers: { 'X-Master-Key': BIN_KEY }
+  });
+  var json = await res.json();
+  return json.record;
+}
+
+async function cloudSave() {
+  var data = { shifts: shifts, settings: settings };
+  localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  try {
+    var id = await getBinId();
+    await fetch(BIN_URL + '/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': BIN_KEY },
+      body: JSON.stringify(data)
+    });
+  } catch(e) {}
+}
+
+/* ─── STATE ─── */
+var shifts = {};
+var settings = { rB:132.90, rMF18:22, rMF21:45, rL13:45, rL15:55, rL18:110, rTax:0 };
+var cY, cM, editKey = null;
+var TODAY = new Date();
+cY = TODAY.getFullYear();
+cM = TODAY.getMonth();
+
+var DN  = ['Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lørdag','Søndag'];
+var DNS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+var MN  = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'];
+
+/* ─── BUILD TIME DROPDOWNS ─── */
+function buildDropdowns() {
+  var selects = ['iSH','iEH'];
+  for (var i = 0; i < selects.length; i++) {
+    var sel = document.getElementById(selects[i]);
+    var opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = 'tt';
+    sel.appendChild(opt0);
+    for (var h = 0; h < 24; h++) {
+      var opt = document.createElement('option');
+      var hh = h < 10 ? '0' + h : '' + h;
+      opt.value = hh; opt.textContent = hh;
+      sel.appendChild(opt);
+    }
+  }
+  var minSels = ['iSM','iEM'];
+  for (var j = 0; j < minSels.length; j++) {
+    var msel = document.getElementById(minSels[j]);
+    var mopt0 = document.createElement('option');
+    mopt0.value = ''; mopt0.textContent = 'mm';
+    msel.appendChild(mopt0);
+    for (var m = 0; m < 60; m++) {
+      var mopt = document.createElement('option');
+      var mm = m < 10 ? '0' + m : '' + m;
+      mopt.value = mm; mopt.textContent = mm;
+      msel.appendChild(mopt);
+    }
+  }
+}
+
+function getTime(prefix) {
+  var h = document.getElementById('i' + prefix + 'H').value;
+  var m = document.getElementById('i' + prefix + 'M').value;
+  if (!h || !m) return '';
+  return h + ':' + m;
+}
+
+function setTime(prefix, timeStr) {
+  var hSel = document.getElementById('i' + prefix + 'H');
+  var mSel = document.getElementById('i' + prefix + 'M');
+  if (!timeStr) {
+    hSel.value = ''; mSel.value = ''; return;
+  }
+  var parts = timeStr.split(':');
+  var h = parts[0];
+  var mNum = parseInt(parts[1]);
+  var mm = mNum < 10 ? '0' + mNum : '' + mNum;
+  hSel.value = h;
+  mSel.value = mm;
+}
+
+/* ─── APPLY DATA TO UI ─── */
+function applySettings(st) {
+  if (!st) return;
+  settings = st;
+  var IDS = ['rB','rMF18','rMF21','rL13','rL15','rL18','rTax'];
+  for (var i = 0; i < IDS.length; i++) {
+    var el = document.getElementById(IDS[i]);
+    if (el && settings[IDS[i]] !== undefined) el.value = settings[IDS[i]];
+  }
+}
+
+/* ─── PERSISTENCE ─── */
+function persist() {
+  try {
+    localStorage.setItem('lk3_shifts',   JSON.stringify(shifts));
+    localStorage.setItem('lk3_settings', JSON.stringify(settings));
+  } catch(e) {}
+  cloudSave();
+}
+
+/* ─── SYNC BUTTON ─── */
+function syncData() {
+  var btn = document.getElementById('syncBtn');
+  btn.classList.add('spinning');
+  cloudLoad().then(function(data) {
+    if (data) {
+      shifts = data.shifts || {};
+      applySettings(data.settings);
+    }
+    recalcAll();
+    btn.classList.remove('spinning');
+  }).catch(function() {
+    btn.classList.remove('spinning');
+  });
+}
+
+/* ─── RATES ─── */
+function getRates() {
+  function g(id) { var v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; }
+  return {
+    base: g('rB'), mf18: g('rMF18'), mf21: g('rMF21'),
+    l13:  g('rL13'), l15: g('rL15'), l18:  g('rL18'),
+    tax:  Math.min(100, Math.max(0, g('rTax')))
+  };
+}
+
+function onRateChange() {
+  var r = getRates();
+  settings = { rB:r.base, rMF18:r.mf18, rMF21:r.mf21, rL13:r.l13, rL15:r.l15, rL18:r.l18, rTax:r.tax };
+  persist();
+  recalcAll();
+  if (editKey) updBk();
+}
+
+/* ─── CALCULATION ─── */
+function calcShift(startStr, endStr, dow) {
+  if (!startStr || !endStr) return null;
+  var sp = startStr.split(':'), ep = endStr.split(':');
+  var st = parseInt(sp[0]) * 60 + parseInt(sp[1]);
+  var en = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+
+  if (en <= st) en += 1440;
+
+  var r = getRates();
+  var brackets;
+
+  if (dow === 6) {
+    brackets = [{ f:0, t:1440, l:'Søndag', rt:r.base }];
+  } else if (dow === 5) {
+    brackets = [
+      { f:0,    t:780,  l:'Lørdag 00:00–13:00', rt:r.base },
+      { f:780,  t:900,  l:'Lørdag 13:00–15:00', rt:r.base + r.l13 },
+      { f:900,  t:1080, l:'Lørdag 15:00–18:00', rt:r.base + r.l15 },
+      { f:1080, t:1440, l:'Lørdag etter 18:00', rt:r.base + r.l18 }
+    ];
+  } else {
+    brackets = [
+      { f:0,    t:1080, l:'Man–Fre 00:00–18:00', rt:r.base },
+      { f:1080, t:1260, l:'Man–Fre 18:00–21:00', rt:r.base + r.mf18 },
+      { f:1260, t:1440, l:'Man–Fre etter 21:00', rt:r.base + r.mf21 }
+    ];
+  }
+
+  var totKr = 0, totH = 0, rows = [];
+  for (var i = 0; i < brackets.length; i++) {
+    var b = brackets[i];
+    var ov = Math.max(0, Math.min(en, b.t) - Math.max(st, b.f));
+    if (ov > 0) {
+      var h = ov / 60, kr = h * b.rt;
+      totKr += kr; totH += h;
+      rows.push({ l:b.l, h:h, rt:b.rt, kr:kr });
+    }
+  }
+
+  if (totH > 5.5) {
+    var lunchDeduct = 0.5 * r.base;
+    totKr -= lunchDeduct;
+    totH  -= 0.5;
+    rows.push({ l:'Lunsjpause (trekk 30 min)', h:-0.5, rt:r.base, kr:-lunchDeduct, deduct:true });
+  }
+
+  var taxPct = r.tax;
+  var netKr  = totKr * (1 - taxPct / 100);
+  return { totKr:totKr, totH:totH, netKr:netKr, taxPct:taxPct, rows:rows };
+}
+
+/* ─── FORMATTING ─── */
+function fKr(n)  { return n.toFixed(2).replace('.', ',') + ' kr'; }
+function fH(h)   { var hh = Math.floor(h), mm = Math.round((h-hh)*60); return mm ? hh+'t '+mm+'m' : hh+'t'; }
+function fShort(n) {
+  if (n >= 1000) return (n/1000).toFixed(1).replace('.',',') + 'k';
+  return Math.round(n).toString();
+}
+
+/* ─── RECALC ALL ─── */
+function recalcAll() {
+  for (var k in shifts) {
+    var s = shifts[k];
+    shifts[k].c = calcShift(s.s, s.e, s.dow);
+  }
+  renderAll();
+}
+
+/* ─── RENDER ─── */
+function renderAll() { renderCalendar(); renderBanner(); renderList(); }
+
+function renderCalendar() {
+  document.getElementById('mMonth').textContent = MN[cM];
+  document.getElementById('mYear').textContent  = cY;
+
+  var cal = document.getElementById('cal');
+  cal.innerHTML = '';
+
+  var firstDow   = new Date(cY, cM, 1).getDay();
+  var startOff   = (firstDow + 6) % 7;
+  var daysInMon  = new Date(cY, cM + 1, 0).getDate();
+
+  for (var i = 0; i < startOff; i++) {
+    var e = document.createElement('div');
+    e.className = 'day empty'; cal.appendChild(e);
+  }
+
+  for (var d = 1; d <= daysInMon; d++) {
+    var dt      = new Date(cY, cM, d);
+    var dow     = (dt.getDay() + 6) % 7;
+    var key     = cY + '-' + cM + '-' + d;
+    var isWe    = dow >= 5;
+    var isToday = (d === TODAY.getDate() && cM === TODAY.getMonth() && cY === TODAY.getFullYear());
+    var hasShift = !!shifts[key];
+
+    var div = document.createElement('div');
+    div.className = 'day' + (isWe?' we-day':'') + (isToday?' today':'') + (hasShift?' has':'');
+
+    var dn = document.createElement('div'); dn.className = 'dn'; dn.textContent = d;
+    div.appendChild(dn);
+
+    if (hasShift && shifts[key].c) {
+      var dot  = document.createElement('div'); dot.className = 'dot'; div.appendChild(dot);
+      var mini = document.createElement('div'); mini.className = 'mini';
+      mini.textContent = fShort(shifts[key].c.totKr); div.appendChild(mini);
+    }
+
+    (function(dd, ddow, kk){ div.onclick = function(){ openModal(dd, ddow, kk); }; })(d, dow, key);
+    cal.appendChild(div);
+  }
+}
+
+function renderBanner() {
+  var tK = 0, tH = 0, tNet = 0, tN = 0;
+  for (var k in shifts) {
+    var p = k.split('-');
+    var ky = parseInt(p[0]), km = parseInt(p[1]);
+    if (ky === cY && km === cM && shifts[k].c) {
+      tK   += shifts[k].c.totKr;
+      tH   += shifts[k].c.totH;
+      tNet += shifts[k].c.netKr;
+      tN++;
+    }
+  }
+  document.getElementById('bAmt').textContent    = fKr(tK);
+  document.getElementById('bHrs').textContent    = fH(tH);
+  document.getElementById('bShifts').textContent = tN;
+  var hasTax = getRates().tax > 0;
+  document.getElementById('bNetPill').style.display = (hasTax && tN > 0) ? '' : 'none';
+  document.getElementById('bNet').textContent    = fKr(tNet);
+
+  var payM = cM + 1, payY = cY;
+  if (payM > 11) { payM = 0; payY++; }
+  document.getElementById('bPayDate').textContent = '12. ' + MN[payM] + ' ' + payY;
+}
+
+function renderList() {
+  var el = document.getElementById('slist');
+  var ms = [];
+  for (var k in shifts) {
+    var p = k.split('-');
+    if (parseInt(p[0]) === cY && parseInt(p[1]) === cM) {
+      ms.push([k, shifts[k]]);
+    }
+  }
+  ms.sort(function(a,b){ return parseInt(a[0].split('-')[2]) - parseInt(b[0].split('-')[2]); });
+
+  if (!ms.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ico">🗓</div>Ingen vakter registrert enda.<br>Trykk på en dag for å legge inn.</div>';
+    return;
+  }
+
+  var hasTax = getRates().tax > 0;
+  var html = '<div class="slist-ttl">Vakter — ' + MN[cM] + ' ' + cY + '</div>';
+
+  for (var i = 0; i < ms.length; i++) {
+    var k = ms[i][0], s = ms[i][1];
+    var d   = parseInt(k.split('-')[2]);
+    var dt  = new Date(cY, cM, d);
+    var dow = (dt.getDay() + 6) % 7;
+    var sub = hasTax && s.c
+      ? '<div class="sc-sub net">' + fKr(s.c.netKr) + ' netto</div>'
+      : '<div class="sc-sub">'     + (s.c ? fH(s.c.totH) : '') + '</div>';
+    var amt = s.c ? fKr(s.c.totKr) : '—';
+    html += '<div class="sc" data-key="' + k + '" data-d="' + d + '" data-dow="' + dow + '">'
+      + '<div><div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
+      + '<div class="sc-time">' + s.s + ' – ' + s.e + (s.c ? ' · ' + fH(s.c.totH) : '') + '</div></div>'
+      + '<div><div class="sc-amt">' + amt + '</div>' + sub + '</div>'
+      + '</div>';
+  }
+
+  el.innerHTML = html;
+
+  var cards = el.querySelectorAll('.sc');
+  for (var j = 0; j < cards.length; j++) {
+    (function(card){
+      card.onclick = function(){
+        openModal(parseInt(card.dataset.d), parseInt(card.dataset.dow), card.dataset.key);
+      };
+    })(cards[j]);
+  }
+}
+
+/* ─── MODAL ─── */
+function openModal(d, dow, key) {
+  editKey = key;
+  document.getElementById('mTtl').textContent = DN[dow] + ' ' + d + '. ' + MN[cM];
+  document.getElementById('mSub').textContent = DNS[dow] + ' · ' + d + '/' + (cM+1) + '/' + cY;
+
+  var ex = shifts[key];
+  setTime('S', ex ? ex.s : '');
+  setTime('E', ex ? ex.e : '');
+  document.getElementById('btnDel').style.display = ex ? 'flex' : 'none';
+
+  updBk();
+  document.getElementById('ov').classList.add('open');
+}
+
+function updBk() {
+  if (!editKey) return;
+  var p   = editKey.split('-');
+  var d   = parseInt(p[2]);
+  var dt  = new Date(cY, cM, d);
+  var dow = (dt.getDay() + 6) % 7;
+  var sv  = getTime('S');
+  var ev  = getTime('E');
+  var res = calcShift(sv, ev, dow);
+
+  if (!res || !res.rows.length) {
+    document.getElementById('bkRows').innerHTML = '<div class="bk-row dim"><span class="bk-l">Velg start og slutttid…</span></div>';
+    document.getElementById('bkTot').textContent = '— kr';
+    document.getElementById('bkNetRow').style.display = 'none';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < res.rows.length; i++) {
+    var row = res.rows[i];
+    if (row.deduct) {
+      html += '<div class="bk-row on" style="color:var(--red)"><span class="bk-l">' + row.l + '</span>'
+            + '<span class="bk-v" style="color:var(--red)">−' + fKr(Math.abs(row.kr)) + '</span></div>';
+    } else {
+      var rs = row.rt.toFixed(2).replace('.',',');
+      html += '<div class="bk-row on"><span class="bk-l">' + row.l + '</span>'
+            + '<span class="bk-v">' + fH(row.h) + ' × ' + rs + ' = <span class="g">' + fKr(row.kr) + '</span></span></div>';
+    }
+  }
+  document.getElementById('bkRows').innerHTML  = html;
+  document.getElementById('bkTot').textContent = fKr(res.totKr);
+
+  var nr = document.getElementById('bkNetRow');
+  if (res.taxPct > 0) {
+    nr.style.display = 'flex';
+    document.getElementById('bkNet').textContent = fKr(res.netKr) + ' (' + res.taxPct + '% trekk)';
+  } else {
+    nr.style.display = 'none';
+  }
+}
+
+function saveShift() {
+  var s = getTime('S'), e = getTime('E');
+  if (!s || !e) { alert('Velg start og slutttid.'); return; }
+  var p   = editKey.split('-');
+  var d   = parseInt(p[2]);
+  var dt  = new Date(cY, cM, d);
+  var dow = (dt.getDay() + 6) % 7;
+  shifts[editKey] = { s:s, e:e, dow:dow, c:calcShift(s, e, dow) };
+  persist();
+  closeModal();
+  renderAll();
+}
+
+function deleteShift() {
+  if (!confirm('Slette denne vakten?')) return;
+  delete shifts[editKey];
+  persist();
+  closeModal();
+  renderAll();
+}
+
+function closeModal() {
+  document.getElementById('ov').classList.remove('open');
+  editKey = null;
+}
+
+function ovBgClick(ev) {
+  if (ev.target === document.getElementById('ov')) closeModal();
+}
+
+/* ─── NAV ─── */
+function chgM(dir) {
+  cM += dir;
+  if (cM > 11) { cM = 0; cY++; }
+  if (cM <  0) { cM = 11; cY--; }
+  renderAll();
+}
+function goToday() { cY = TODAY.getFullYear(); cM = TODAY.getMonth(); renderAll(); }
+
+/* ─── SETTINGS TOGGLE ─── */
+function toggleStg() {
+  var p = document.getElementById('stg');
+  var b = document.getElementById('stgBtn');
+  var o = p.classList.toggle('open');
+  b.classList.toggle('on', o);
+  b.textContent = o ? '✕ Lukk' : '⚙ Satser';
+}
+
+/* ─── KEYBOARD ─── */
+document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') closeModal(); });
+
+/* ─── IOS INSTALL HINT ─── */
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function isInStandaloneMode() {
+  return ('standalone' in window.navigator) && window.navigator.standalone;
+}
+
+/* ─── SEED DATA (historiske vakter) ─── */
+var SEED_B64 = 'eyJzaGlmdHMiOnsiMjAyNi0zLTIwIjp7InMiOiIxNDoxOSIsImUiOiIyMjowMCIsImRvdyI6MCwiYyI6eyJ0b3RLciI6MTA2NS42NjUsInRvdEgiOjcuMTgzMzMzMzMzMzMzMzM0LCJuZXRLciI6MTA2NS42NjUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6My42ODMzMzMzMzMzMzMzMzMsInJ0IjoxMzIuOSwia3IiOjQ4OS41MTV9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi0zLTIxIjp7InMiOiIxNjowMCIsImUiOiIyMjowMCIsImRvdyI6MSwiYyI6eyJ0b3RLciI6ODQxLjk0OTk5OTk5OTk5OTksdG90SCI6NS41LCJuZXRLciI6ODQxLjk0OTk5OTk5OTk5OTksdGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjoyLCJydCI6MTMyLjksImtyIjoyNjUuOH0seyJsIjoiTWFu4oCTRnJlIDE4OjAw4oCTMjE6MDAiLCJoIjozLCJydCI6MTU0LjksImtyIjo0NjQuNzAwMDAwMDAwMDAwMDV9LHsibCI6Ik1hbuKAk0ZyZSBldHRlciAyMTowMCIsImgiOjEsInJ0IjoxNzcuOSwia3IiOjE3Ny45fSx7ImwiOiJMdW5zanBhdXNlICh0cmVrayAzMCBtaW4pIiwiaCI6LTAuNSwicnQiOjEzMi45LCJrciI6LTY2LjQ1LCJkZWR1Y3QiOnRydWV9XX19LCIyMDI2LTMtMjQiOnsicyI6IjE0OjAwIiwiZSI6IjIyOjAwIiwiZG93Ijo0LCJjIjp7InRvdEtyIjoxMTA3Ljc1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OjAwIiwiaCI6MSwicnQiOjE4Ny45LCJrciI6MTg3Ljl9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtNS0xNSI6eyJzIjoiMTQ6MDAiLCJlIjoiMjI6MDAiLCJkb3ciOjAsImMiOnsidG90S3IiOjExMDcuNzUsInRvdEgiOjcuNSwibmV0S3IiOjExMDcuNzUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6NCwicnQiOjEzMi45LCJrciI6NTMxLjZ9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi02LTQiOnsicyI6IjA4OjAwIiwiZSI6IjE2OjAwIiwiZG93Ijo1LCJjIjp7InRvdEtyIjoxMTQxLjc1LCJ0b3RIIjo3LjUsIm5ldEtyIjoxMTQxLjc1LCJ0YXhQY3QiOjAsInJvd3MiOlt7ImwiOiJMw7hyZGFnIDAwOjAw4oCTMTM6MDAiLCJoIjo1LCJydCI6MTMyLjksImtyIjo2NjQuNX0seyJsIjoiTMO4cmRhZyAxMzowMOKAkzE1OjAwIiwiaCI6MiwicnQiOjE3Ny45LCJrciI6MzU1Ljh9LHsibCI6Ikzw7hyZGFnIDE1OjAw4oCTMTg6MDAiLCJoIjoxLCJydCI6MTg3LjksImtyIjoxODcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi02LTciOnsicyI6IjA3OjAwIiwiZSI6IjE1OjAwIiwiZG93IjoxLCJjIjp7InRvdEtyIjo5OTYuNzUsInRvdEgiOjcuNSwibmV0S3IiOjk5Ni43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjo4LCJydCI6MTMyLjksImtyIjoxMDYzLjJ9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtNi05Ijp7InMiOiIxNDowMCIsImUiOiIyMjowMCIsImRvdyI6MywiYyI6eyJ0b3RLciI6MTEwNy43NSwidG90SCI6Ny41LCJuZXRLciI6MTEwNy43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjo0LCJydCI6MTMyLjksImtyIjo1MzEuNn0seyJsIjoiTWFu4oCTRnJlIDE4OjAw4oCTMjE6MDAiLCJoIjozLCJydCI6MTU0LjksImtyIjo0NjQuNzAwMDAwMDAwMDAwMDV9LHsibCI6Ik1hbuKAk0ZyZSBldHRlciAyMTowMCIsImgiOjEsInJ0IjoxNzcuOSwia3IiOjE3Ny45fSx7ImwiOiJMdW5zanBhdXNlICh0cmVrayAzMCBtaW4pIiwiaCI6LTAuNSwicnQiOjEzMi45LCJrciI6LTY2LjQ1LCJkZWR1Y3QiOnRydWV9XX19LCIyMDI2LTYtMTUiOnsicyI6IjE0OjAwIiwiZSI6IjIyOjAwIiwiZG93IjoyLCJjIjp7InRvdEtyIjoxMTA3Ljc1LCJ0b3RIIjo3LjUsIm5ldEtyIjoxMTA3Ljc1LCJ0YXhQY3QiOjAsInJvd3MiOlt7ImwiOiJNYW7igJNGcmUgMDA6MDDigJMxODowMCIsImgiOjQsInJ0IjoxMzIuOSwia3IiOjUzMS42fSx7ImwiOiJNYW7igJNGcmUgMTg6MDDigJMyMTowMCIsImgiOjMsInJ0IjoxNTQuOSwia3IiOjQ2NC43MDAwMDAwMDAwMDAwNX0seyJsIjoiTWFu4oCTRnJlIGV0dGVyIDIxOjAwIiwiaCI6MSwicnQiOjE3Ny45LCJrciI6MTc3Ljl9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtNi0xNiI6eyJzIjoiMTQ6MDAiLCJlIjoiMjI6MDAiLCJkb3ciOjMsImMiOnsidG90S3IiOjExMDcuNzUsInRvdEgiOjcuNSwibmV0S3IiOjExMDcuNzUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6NCwicnQiOjEzMi45LCJrciI6NTMxLjZ9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi02LTE4Ijp7InMiOiIwODowMCIsImUiOiIxNjowMCIsImRvdyI6NSwiYyI6eyJ0b3RLciI6MTE0MS43NSwidG90SCI6Ny41LCJuZXRLciI6MTE0MS43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTMO4cmRhZyAwMDowMOKAkzEzOjAwIiwiaCI6NSwicnQiOjEzMi45LCJrciI6NjY0LjV9LHsibCI6Ikzw7hyZGFnIDEzOjAw4oCTMTU6MDAiLCJoIjoyLCJydCI6MTc3LjksImtyIjozNTUuOH0seyJsIjoiTMO4cmRhZyAxNTowMOKAkzE4OjAwIiwiaCI6MSwicnQiOjE4Ny45LCJrciI6MTg3Ljl9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtNi0yMyI6eyJzIjoiMTQ6MDAiLCJlIjoiMjI6MDAiLCJkb3ciOjMsImMiOnsidG90S3IiOjExMDcuNzUsInRvdEgiOjcuNSwibmV0S3IiOjExMDcuNzUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6NCwicnQiOjEzMi45LCJrciI6NTMxLjZ9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi03LTEiOnsicyI6IjA4OjAwIiwiZSI6IjE2OjAwIiwiZG93Ijo1LCJjIjp7InRvdEtyIjoxMTQxLjc1LCJ0b3RIIjo3LjUsIm5ldEtyIjoxMTQxLjc1LCJ0YXhQY3QiOjAsInJvd3MiOlt7ImwiOiJMw7hyZGFnIDAwOjAw4oCTMTM6MDAiLCJoIjo1LCJydCI6MTMyLjksImtyIjo2NjQuNX0seyJsIjoiTMO4cmRhZyAxMzowMOKAkzE1OjAwIiwiaCI6MiwicnQiOjE3Ny45LCJrciI6MzU1Ljh9LHsibCI6Ikzw7hyZGFnIDE1OjAw4oCTMTg6MDAiLCJoIjoxLCJydCI6MTg3LjksImtyIjoxODcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi02LTIxIjp7InMiOiIwNzowMCIsImUiOiIxNTowMCIsImRvdyI6MSwiYyI6eyJ0b3RLciI6OTk2Ljc1LCJ0b3RIIjo3LjUsIm5ldEtyIjo5OTYuNzUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6OCwicnQiOjEzMi45LCJrciI6MTA2My4yfSx7ImwiOiJMdW5zanBhdXNlICh0cmVrayAzMCBtaW4pIiwiaCI6LTAuNSwicnQiOjEzMi45LCJrciI6LTY2LjQ1LCJkZWR1Y3QiOnRydWV9XX19LCIyMDI2LTYtMjkiOnsicyI6IjA3OjAwIiwiZSI6IjE1OjAwIiwiZG93IjoyLCJjIjp7InRvdEtyIjo5OTYuNzUsInRvdEgiOjcuNSwibmV0S3IiOjk5Ni43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjo4LCJydCI6MTMyLjksImtyIjoxMDYzLjJ9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtMy0yOCI6eyJzIjoiMTY6MDkiLCJlIjoiMjI6MDAiLCJkb3ciOjEsImMiOnsidG90S3IiOjgyMi4wMTUsInRvdEgiOjUuMzUsIm5ldEtyIjo4MjIuMDE1LCJ0YXhQY3QiOjAsInJvd3MiOlt7ImwiOiJNYW7igJNGcmUgMDA6MDDigJMxODowMCIsImgiOjEuODUsInJ0IjoxMzIuOSwia3IiOjI0NS44NjV9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi0zLTMwIjp7InMiOiIxNDowMCIsImUiOiIyMjowMCIsImRvdyI6MywiYyI6eyJ0b3RLciI6MTEwNy43NSwidG90SCI6Ny41LCJuZXRLciI6MTEwNy43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjo0LCJydCI6MTMyLjksImtyIjo1MzEuNn0seyJsIjoiTWFu4oCTRnJlIDE4OjAw4oCTMjE6MDAiLCJoIjozLCJydCI6MTU0LjksImtyIjo0NjQuNzAwMDAwMDAwMDAwMDV9LHsibCI6Ik1hbuKAk0ZyZSBldHRlciAyMTowMCIsImgiOjEsInJ0IjoxNzcuOSwia3IiOjE3Ny45fSx7ImwiOiJMdW5zanBhdXNlICh0cmVrayAzMCBtaW4pIiwiaCI6LTAuNSwicnQiOjEzMi45LCJrciI6LTY2LjQ1LCJkZWR1Y3QiOnRydWV9XX19LCIyMDI2LTYtMyI6eyJzIjoiMTE6MDAiLCJlIjoiMTk6MDAiLCJkb3ciOjQsImMiOnsidG90S3IiOjEwMTguNzUsInRvdEgiOjcuNSwibmV0S3IiOjEwMTguNzUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6NywicnQiOjEzMi45LCJrciI6OTMwLjMwMDAwMDAwMDAwMDF9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MSwicnQiOjE1NC45LCJrciI6MTU0Ljl9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtMy0xIjp7InMiOiIxNDowMCIsImUiOiIyMjowMCIsImRvdyI6MiwiYyI6eyJ0b3RLciI6MTEwNy43NSwidG90SCI6Ny41LCJuZXRLciI6MTEwNy43NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjo0LCJydCI6MTMyLjksImtyIjo1MzEuNn0seyJsIjoiTWFu4oCTRnJlIDE4OjAw4oCTMjE6MDAiLCJoIjozLCJydCI6MTU0LjksImtyIjo0NjQuNzAwMDAwMDAwMDAwMDV9LHsibCI6Ik1hbuKAk0ZyZSBldHRlciAyMTowMCIsImgiOjEsInJ0IjoxNzcuOSwia3IiOjE3Ny45fSx7ImwiOiJMdW5zanBhdXNlICh0cmVrayAzMCBtaW4pIiwiaCI6LTAuNSwicnQiOjEzMi45LCJrciI6LTY2LjQ1LCJkZWR1Y3QiOnRydWV9XX19LCIyMDI2LTMtOSI6eyJzIjoiMTU6MDAiLCJlIjoiMjI6MDAiLCJkb3ciOjMsImMiOnsidG90S3IiOjk3NC44NTAwMDAwMDAwMDAxLCJ0b3RIIjo2LjUsIm5ldEtyIjo5NzQuODUwMDAwMDAwMDAwMSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTWFu4oCTRnJlIDAwOjAw4oCTMTg6MDAiLCJoIjozLCJydCI6MTMyLjksImtyIjozOTguNzAwMDAwMDAwMDAwMDV9LHsibCI6Ik1hbuKAk0ZyZSAxODowMOKAkzIxOjAwIiwiaCI6MywicnQiOjE1NC45LCJrciI6NDY0LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgZXR0ZXIgMjE6MDAiLCJoIjoxLCJydCI6MTc3LjksImtyIjoxNzcuOX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi0zLTExIjp7InMiOiIxMDowMCIsImUiOiIyMDowMCIsImRvdyI6NSwiYyI6eyJ0b3RLciI6MTczNy41NSwidG90SCI6OS41LCJuZXRLciI6MTczNy41NSwidGF4UGN0IjowLCJyb3dzIjpbeyJsIjoiTMO4cmRhZyAwMDowMOKAkzEzOjAwIiwiaCI6MywicnQiOjEzMi45LCJrciI6Mzk4LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJMw7hyZGFnIDEzOjAw4oCTMTU6MDAiLCJoIjoyLCJydCI6MTc3LjksImtyIjozNTUuOH0seyJsIjoiTMO4cmRhZyAxNTowMOKAkzE4OjAwIiwiaCI6MywicnQiOjE4Ny45LCJrciI6NTYzLjd9LHsibCI6Ikzw7hyZGFnIGV0dGVyIDE4OjAwIiwiaCI6MiwicnQiOjI0Mi45LCJrciI6NDg1Ljh9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX0sIjIwMjYtNC00Ijp7InMiOiIxNTowMCIsImUiOiIyMTowMCIsImRvdyI6MCwiYyI6eyJ0b3RLciI6Nzk2Ljk1LCJ0b3RIIjo1LjUsIm5ldEtyIjo3OTYuOTUsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6MywicnQiOjEzMi45LCJrciI6Mzk4LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgMTg6MDDigJMyMTowMCIsImgiOjMsInJ0IjoxNTQuOSwia3IiOjQ2NC43MDAwMDAwMDAwMDAwNX0seyJsIjoiTHVuc2pwYXVzZSAodHJla2sgMzAgbWluKSIsImgiOi0wLjUsInJ0IjoxMzIuOSwia3IiOi02Ni40NSwiZGVkdWN0Ijp0cnVlfV19fSwiMjAyNi00LTciOnsicyI6IjE1OjAwIiwiZSI6IjIyOjAwIiwiZG93IjozLCJjIjp7InRvdEtyIjo5NzQuODUwMDAwMDAwMDAwMSwidG90SCI6Ni41LCJuZXRLciI6OTc0Ljg1MDAwMDAwMDAwMDEsInRheFBjdCI6MCwicm93cyI6W3sibCI6Ik1hbuKAk0ZyZSAwMDowMOKAkzE4OjAwIiwiaCI6MywicnQiOjEzMi45LCJrciI6Mzk4LjcwMDAwMDAwMDAwMDA1fSx7ImwiOiJNYW7igJNGcmUgMTg6MDDigJMyMTowMCIsImgiOjMsInJ0IjoxNTQuOSwia3IiOjQ2NC43MDAwMDAwMDAwMDAwNX0seyJsIjoiTWFu4oCTRnJlIGV0dGVyIDIxOjAwIiwiaCI6MSwicnQiOjE3Ny45LCJrciI6MTc3Ljl9LHsibCI6Ikx1bnNqcGF1c2UgKHRyZWtrIDMwIG1pbikiLCJoIjotMC41LCJydCI6MTMyLjksImtyIjotNjYuNDUsImRlZHVjdCI6dHJ1ZX1dfX19LCJzZXR0aW5ncyI6eyJyQiI6MTMyLjksInJNRjE4IjoyMiwick1GMjEiOjQ1LCJyTDEzIjo0NSwickwxNSI6NTUsInJMMTgiOjExMCwiclRheCI6MH19';
+
+function loadSeed() {
+  try {
+    var decoded = decodeURIComponent(escape(atob(SEED_B64)));
+    var obj = JSON.parse(decoded);
+    if (obj.shifts) shifts = obj.shifts;
+    if (obj.settings) applySettings(obj.settings);
+  } catch(e) {}
+}
+
+/* ─── BOOT ─── */
+buildDropdowns();
+document.getElementById('loadScreen').style.display = 'flex';
+
+cloudLoad().then(function(data) {
+  var hasCloudData = data && data.shifts && Object.keys(data.shifts).length > 0;
+  if (hasCloudData) {
+    shifts = data.shifts;
+    applySettings(data.settings);
+  } else {
+    var cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        var c = JSON.parse(cached);
+        if (c.shifts && Object.keys(c.shifts).length > 0) {
+          shifts = c.shifts;
+          applySettings(c.settings);
+        } else {
+          loadSeed();
+          cloudSave();
+        }
+      } catch(e) { loadSeed(); cloudSave(); }
+    } else {
+      loadSeed();
+      cloudSave();
+    }
+  }
+  recalcAll();
+  document.getElementById('loadScreen').style.display = 'none';
+  if (!isOnline) document.getElementById('offlineBanner').style.display = 'block';
+  if (isIOS() && !isInStandaloneMode()) {
+    document.getElementById('installHint').classList.add('show');
+  }
+}).catch(function() {
+  var cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try {
+      var c = JSON.parse(cached);
+      shifts = c.shifts || {};
+      applySettings(c.settings);
+    } catch(e) { loadSeed(); }
+  } else {
+    loadSeed();
+  }
+  recalcAll();
+  document.getElementById('loadScreen').style.display = 'none';
+  document.getElementById('offlineBanner').style.display = 'block';
+  if (isIOS() && !isInStandaloneMode()) {
+    document.getElementById('installHint').classList.add('show');
+  }
+});
+</script>
+
+<!-- EXPORT OVERLAY -->
+<div class="overlay" id="ovExport" onclick="if(event.target===this)closeExport()">
+  <div class="modal">
+    <div class="drag-bar"></div>
+    <div class="modal-ttl">↑ Eksporter data</div>
+    <div class="modal-sub" style="margin-bottom:14px">Kopier koden og lagre den et trygt sted</div>
+    <textarea id="exportTxt" readonly onclick="this.select()" style="width:100%;height:140px;background:var(--bg);border:1px solid var(--br);border-radius:var(--r);color:var(--tx);font-family:var(--mo);font-size:11px;padding:12px;resize:none;outline:none;line-height:1.5"></textarea>
+    <div style="margin-top:10px;display:flex;gap:10px">
+      <button class="mbtn mbtn-save" onclick="copyExport()">📋 Kopier</button>
+      <button class="mbtn mbtn-cancel" onclick="closeExport()">Lukk</button>
+    </div>
+    <div id="copyConfirm" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--ac);font-family:var(--mo)">✓ Kopiert!</div>
+  </div>
+</div>
+
+<!-- IMPORT OVERLAY -->
+<div class="overlay" id="ovImport" onclick="if(event.target===this)closeImport()">
+  <div class="modal">
+    <div class="drag-bar"></div>
+    <div class="modal-ttl">↓ Importer data</div>
+    <div class="modal-sub" style="margin-bottom:14px">Lim inn eksportkoden din her</div>
+    <textarea id="importTxt" placeholder="Lim inn kode her…" style="width:100%;height:140px;background:var(--bg);border:1px solid var(--br);border-radius:var(--r);color:var(--tx);font-family:var(--mo);font-size:11px;padding:12px;resize:none;outline:none;line-height:1.5"></textarea>
+    <div style="margin-top:10px;display:flex;gap:10px">
+      <button class="mbtn mbtn-save" onclick="importData()">✓ Last inn</button>
+      <button class="mbtn mbtn-cancel" onclick="closeImport()">Avbryt</button>
+    </div>
+    <div id="importErr" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--red);font-family:var(--mo)">Ugyldig kode — prøv igjen.</div>
+  </div>
+</div>
+
+<script>
+function exportData() {
+  var payload = JSON.stringify({ shifts: shifts, settings: settings });
+  var encoded = btoa(unescape(encodeURIComponent(payload)));
+  document.getElementById('exportTxt').value = encoded;
+  document.getElementById('copyConfirm').style.display = 'none';
+  document.getElementById('ovExport').classList.add('open');
+}
+function closeExport() { document.getElementById('ovExport').classList.remove('open'); }
+function copyExport() {
+  var txt = document.getElementById('exportTxt');
+  txt.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.getElementById('copyConfirm').style.display = 'block';
+}
+function openImport() {
+  document.getElementById('importTxt').value = '';
+  document.getElementById('importErr').style.display = 'none';
+  document.getElementById('ovImport').classList.add('open');
+}
+function closeImport() { document.getElementById('ovImport').classList.remove('open'); }
+function importData() {
+  var raw = document.getElementById('importTxt').value.trim();
+  try {
+    var decoded = decodeURIComponent(escape(atob(raw)));
+    var obj = JSON.parse(decoded);
+    if (!obj.shifts || !obj.settings) throw new Error();
+    shifts = obj.shifts;
+    applySettings(obj.settings);
+    persist();
+    recalcAll();
+    closeImport();
+  } catch(e) {
+    document.getElementById('importErr').style.display = 'block';
+  }
+}
+</script>
+
+</body>
+</html>
