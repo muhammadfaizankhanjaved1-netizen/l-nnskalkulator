@@ -885,6 +885,10 @@ function importData() {
   }
 }
 </script>
-
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/l-nnskalkulator/sw.js');
+}
+</script>
 </body>
 </html>
