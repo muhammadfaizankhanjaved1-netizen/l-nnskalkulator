@@ -38,9 +38,10 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
 .hdr-title{font-size:17px;font-weight:800;letter-spacing:-.4px}
 .hdr-title span{color:var(--ac)}
 .hdr-sub{font-size:10px;color:var(--mu2);font-family:var(--mo);margin-top:2px}
-.hdr-btn{background:var(--s2);border:1px solid var(--br);color:var(--mu2);font-family:var(--mo);font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;-webkit-appearance:none;appearance:none;white-space:nowrap}
-.hdr-btn.on{background:var(--br);color:var(--tx)}
-.hdr-btn.spinning{animation:spin .8s linear infinite;display:inline-block}
+.hdr-btn{background:var(--s2);border:1px solid var(--br);color:var(--mu2);font-family:var(--mo);font-size:16px;width:38px;height:38px;border-radius:10px;cursor:pointer;-webkit-appearance:none;appearance:none;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-btn.on{background:var(--br);color:var(--ac)}
+.hdr-btn.spinning{animation:spin .8s linear infinite}
+.data-btn{background:var(--s2);border:1px solid var(--br);color:var(--mu2);font-family:var(--mo);font-size:12px;padding:10px;border-radius:9px;cursor:pointer;-webkit-appearance:none;appearance:none;flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
 
 /* SETTINGS */
 .stg{display:none;background:var(--sf);border:1px solid var(--br);border-radius:var(--rl);padding:18px;margin-bottom:18px}
@@ -176,11 +177,9 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
         <div class="hdr-sub">Coop Øst SA · trykk en dag for å legge inn vakt</div>
       </div>
     </div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:8px">
       <button class="hdr-btn" id="syncBtn" onclick="syncData()" title="Synkroniser">↻</button>
-      <button class="hdr-btn" onclick="exportData()">↑ Eksport</button>
-      <button class="hdr-btn" onclick="openImport()">↓ Importer</button>
-      <button class="hdr-btn" id="stgBtn" onclick="toggleStg()">⚙ Satser</button>
+      <button class="hdr-btn" id="stgBtn" onclick="toggleStg()" title="Satser og data">⚙</button>
     </div>
   </div>
 
@@ -213,6 +212,13 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
       <div class="stg-lbl">Skatt</div>
       <div class="rr"><label>Skattetrekk</label><span class="unit">%</span><input type="number" id="rTax" value="0" step="1" min="0" max="60" oninput="onRateChange()"></div>
       <div class="stg-hint">0% = frikort · skriv inn trekkprosenten din for å se netto</div>
+    </div>
+    <div class="stg-grp">
+      <div class="stg-lbl">Data</div>
+      <div style="display:flex;gap:8px;margin-top:2px">
+        <button class="data-btn" onclick="exportData()">↑ Eksporter</button>
+        <button class="data-btn" onclick="openImport()">↓ Importer</button>
+      </div>
     </div>
   </div>
 
