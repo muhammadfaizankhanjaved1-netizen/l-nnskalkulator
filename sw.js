@@ -1,4 +1,4 @@
-const CACHE = 'lonn-v1';
+const CACHE = 'lonn-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
