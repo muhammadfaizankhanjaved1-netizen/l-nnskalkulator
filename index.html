@@ -195,7 +195,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
   <div class="stg" id="stg">
     <div class="stg-grp">
       <div class="stg-lbl">Grunnlønn</div>
-      <div class="rr"><label>Timelønn</label><span class="unit">kr/t</span><input type="number" id="rB" value="132.90" step="0.10" min="0" oninput="onRateChange()"></div>
+      <div class="rr"><label>Timelønn</label><span class="unit">kr/t</span><input type="number" id="rB" value="139.40" step="0.10" min="0" oninput="onRateChange()"></div>
     </div>
     <div class="stg-grp">
       <div class="stg-lbl">Tillegg hverdager (Man–Fre)</div>
@@ -279,6 +279,31 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
       </div>
     </div>
 
+    <div style="margin-bottom:14px">
+      <div style="font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mo);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <span>Pause <span style="opacity:.55;font-size:9px">(valgfri — tomt = 30 min trekk ved &gt;5,5t)</span></span>
+        <span onclick="clearPause()" style="cursor:pointer;color:var(--mu2);font-size:11px;padding:2px 6px">✕</span>
+      </div>
+      <div class="time-grid" style="margin-bottom:0">
+        <div class="fld">
+          <label>Start pause</label>
+          <div class="time-picker" id="tpPS">
+            <select class="tp-sel" id="iPSH" onchange="updBk()"></select>
+            <span class="tp-colon">:</span>
+            <select class="tp-sel" id="iPSM" onchange="updBk()"></select>
+          </div>
+        </div>
+        <div class="fld">
+          <label>Slutt pause</label>
+          <div class="time-picker" id="tpPE">
+            <select class="tp-sel" id="iPEH" onchange="updBk()"></select>
+            <span class="tp-colon">:</span>
+            <select class="tp-sel" id="iPEM" onchange="updBk()"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="bk">
       <div class="bk-ttl">Beregning</div>
       <div id="bkRows"></div>
@@ -339,7 +364,7 @@ async function cloudSave() {
 
 /* ─── STATE ─── */
 var shifts = {};
-var settings = { rB:132.90, rMF18:22, rMF21:45, rL13:45, rL15:55, rL18:110, rTax:0 };
+var settings = { rB:139.40, rMF18:22, rMF21:45, rL13:45, rL15:55, rL18:110, rTax:0 };
 var cY, cM, editKey = null;
 var TODAY = new Date();
 cY = TODAY.getFullYear();
@@ -351,7 +376,7 @@ var MN  = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','Septe
 
 /* ─── BUILD TIME DROPDOWNS ─── */
 function buildDropdowns() {
-  var selects = ['iSH','iEH'];
+  var selects = ['iSH','iEH','iPSH','iPEH'];
   for (var i = 0; i < selects.length; i++) {
     var sel = document.getElementById(selects[i]);
     var opt0 = document.createElement('option');
@@ -364,7 +389,7 @@ function buildDropdowns() {
       sel.appendChild(opt);
     }
   }
-  var minSels = ['iSM','iEM'];
+  var minSels = ['iSM','iEM','iPSM','iPEM'];
   for (var j = 0; j < minSels.length; j++) {
     var msel = document.getElementById(minSels[j]);
     var mopt0 = document.createElement('option');
@@ -455,17 +480,15 @@ function onRateChange() {
 }
 
 /* ─── CALCULATION ─── */
-function calcShift(startStr, endStr, dow) {
+function calcShift(startStr, endStr, dow, psStr, peStr) {
   if (!startStr || !endStr) return null;
   var sp = startStr.split(':'), ep = endStr.split(':');
   var st = parseInt(sp[0]) * 60 + parseInt(sp[1]);
   var en = parseInt(ep[0]) * 60 + parseInt(ep[1]);
-
   if (en <= st) en += 1440;
 
   var r = getRates();
   var brackets;
-
   if (dow === 6) {
     brackets = [{ f:0, t:1440, l:'Søndag', rt:r.base }];
   } else if (dow === 5) {
@@ -473,28 +496,50 @@ function calcShift(startStr, endStr, dow) {
       { f:0,    t:780,  l:'Lørdag 00:00–13:00', rt:r.base },
       { f:780,  t:900,  l:'Lørdag 13:00–15:00', rt:r.base + r.l13 },
       { f:900,  t:1080, l:'Lørdag 15:00–18:00', rt:r.base + r.l15 },
-      { f:1080, t:1440, l:'Lørdag etter 18:00', rt:r.base + r.l18 }
+      { f:1080, t:1440, l:'Lørdag etter 18:00',  rt:r.base + r.l18 }
     ];
   } else {
     brackets = [
       { f:0,    t:1080, l:'Man–Fre 00:00–18:00', rt:r.base },
       { f:1080, t:1260, l:'Man–Fre 18:00–21:00', rt:r.base + r.mf18 },
-      { f:1260, t:1440, l:'Man–Fre etter 21:00', rt:r.base + r.mf21 }
+      { f:1260, t:1440, l:'Man–Fre etter 21:00',  rt:r.base + r.mf21 }
     ];
   }
 
-  var totKr = 0, totH = 0, rows = [];
-  for (var i = 0; i < brackets.length; i++) {
-    var b = brackets[i];
-    var ov = Math.max(0, Math.min(en, b.t) - Math.max(st, b.f));
-    if (ov > 0) {
-      var h = ov / 60, kr = h * b.rt;
-      totKr += kr; totH += h;
-      rows.push({ l:b.l, h:h, rt:b.rt, kr:kr });
+  var hasPause = false, pst = 0, pen = 0;
+  if (psStr && peStr) {
+    var psp = psStr.split(':'), pep = peStr.split(':');
+    pst = parseInt(psp[0]) * 60 + parseInt(psp[1]);
+    pen = parseInt(pep[0]) * 60 + parseInt(pep[1]);
+    hasPause = pen > pst && pst >= st && pen <= en;
+  }
+
+  var segments = hasPause
+    ? [{ from:st, to:pst }, { from:pen, to:en }]
+    : [{ from:st, to:en }];
+
+  var totKr = 0, totH = 0, bkMap = {};
+  for (var s = 0; s < segments.length; s++) {
+    var seg = segments[s];
+    for (var i = 0; i < brackets.length; i++) {
+      var b = brackets[i];
+      var ov = Math.max(0, Math.min(seg.to, b.t) - Math.max(seg.from, b.f));
+      if (ov > 0) {
+        var h = ov / 60, kr = h * b.rt;
+        totKr += kr; totH += h;
+        if (bkMap[b.l]) { bkMap[b.l].h += h; bkMap[b.l].kr += kr; }
+        else { bkMap[b.l] = { l:b.l, h:h, rt:b.rt, kr:kr }; }
+      }
     }
   }
 
-  if (totH > 5.5) {
+  var rows = [];
+  for (var k in bkMap) rows.push(bkMap[k]);
+
+  if (hasPause) {
+    var pauseMin = pen - pst;
+    rows.push({ l:'Pause (' + pauseMin + ' min)', h:-(pauseMin/60), rt:0, kr:0, deduct:true, isPause:true });
+  } else if (totH > 5.5) {
     var lunchDeduct = 0.5 * r.base;
     totKr -= lunchDeduct;
     totH  -= 0.5;
@@ -518,7 +563,7 @@ function fShort(n) {
 function recalcAll() {
   for (var k in shifts) {
     var s = shifts[k];
-    shifts[k].c = calcShift(s.s, s.e, s.dow);
+    shifts[k].c = calcShift(s.s, s.e, s.dow, s.ps||null, s.pe||null);
   }
   renderAll();
 }
@@ -645,8 +690,10 @@ function openModal(d, dow, key) {
   document.getElementById('mSub').textContent = DNS[dow] + ' · ' + d + '/' + (cM+1) + '/' + cY;
 
   var ex = shifts[key];
-  setTime('S', ex ? ex.s : '');
-  setTime('E', ex ? ex.e : '');
+  setTime('S',  ex ? ex.s  : '');
+  setTime('E',  ex ? ex.e  : '');
+  setTime('PS', ex && ex.ps ? ex.ps : '');
+  setTime('PE', ex && ex.pe ? ex.pe : '');
   document.getElementById('btnDel').style.display = ex ? 'flex' : 'none';
 
   updBk();
@@ -661,7 +708,9 @@ function updBk() {
   var dow = (dt.getDay() + 6) % 7;
   var sv  = getTime('S');
   var ev  = getTime('E');
-  var res = calcShift(sv, ev, dow);
+  var ps  = getTime('PS');
+  var pe  = getTime('PE');
+  var res = calcShift(sv, ev, dow, ps||null, pe||null);
 
   if (!res || !res.rows.length) {
     document.getElementById('bkRows').innerHTML = '<div class="bk-row dim"><span class="bk-l">Velg start og slutttid…</span></div>';
@@ -674,8 +723,13 @@ function updBk() {
   for (var i = 0; i < res.rows.length; i++) {
     var row = res.rows[i];
     if (row.deduct) {
-      html += '<div class="bk-row on" style="color:var(--red)"><span class="bk-l">' + row.l + '</span>'
-            + '<span class="bk-v" style="color:var(--red)">−' + fKr(Math.abs(row.kr)) + '</span></div>';
+      if (row.isPause) {
+        html += '<div class="bk-row on" style="color:var(--mu2)"><span class="bk-l">' + row.l + '</span>'
+              + '<span class="bk-v" style="color:var(--mu2)">ikke betalt</span></div>';
+      } else {
+        html += '<div class="bk-row on" style="color:var(--red)"><span class="bk-l">' + row.l + '</span>'
+              + '<span class="bk-v" style="color:var(--red)">−' + fKr(Math.abs(row.kr)) + '</span></div>';
+      }
     } else {
       var rs = row.rt.toFixed(2).replace('.',',');
       html += '<div class="bk-row on"><span class="bk-l">' + row.l + '</span>'
@@ -694,6 +748,12 @@ function updBk() {
   }
 }
 
+function clearPause() {
+  setTime('PS', '');
+  setTime('PE', '');
+  updBk();
+}
+
 function saveShift() {
   var s = getTime('S'), e = getTime('E');
   if (!s || !e) { alert('Velg start og slutttid.'); return; }
@@ -701,7 +761,9 @@ function saveShift() {
   var d   = parseInt(p[2]);
   var dt  = new Date(cY, cM, d);
   var dow = (dt.getDay() + 6) % 7;
-  shifts[editKey] = { s:s, e:e, dow:dow, c:calcShift(s, e, dow) };
+  var ps = getTime('PS') || null;
+  var pe = getTime('PE') || null;
+  shifts[editKey] = { s:s, e:e, dow:dow, ps:ps, pe:pe, c:calcShift(s, e, dow, ps, pe) };
   persist();
   closeModal();
   renderAll();
@@ -887,7 +949,7 @@ function importData() {
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/l-nnskalkulator/sw.js');
+  navigator.serviceWorker.register('/sw.js');
 }
 </script>
 </body>
