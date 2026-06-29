@@ -92,12 +92,17 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
 
 /* SHIFT LIST */
 .slist-ttl{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;font-family:var(--mo);margin-bottom:10px}
-.sc{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.sc{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:13px 16px;margin-bottom:7px;cursor:pointer;display:block}
 .sc-day{font-size:14px;font-weight:700}
-.sc-time{font-size:11px;color:var(--mu2);font-family:var(--mo);margin-top:2px}
-.sc-amt{font-size:16px;font-weight:700;font-family:var(--mo);color:var(--ac);text-align:right}
-.sc-sub{font-size:10px;color:var(--mu2);font-family:var(--mo);text-align:right;margin-top:1px}
+.sc-time{font-size:11px;color:var(--mu2);font-family:var(--mo)}
+.sc-amt{font-size:17px;font-weight:700;font-family:var(--mo);color:var(--ac)}
+.sc-sub{font-size:10px;color:var(--mu2);font-family:var(--mo)}
 .sc-sub.net{color:var(--blue)}
+.sc-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sc-type{font-size:9px;font-family:var(--mo);text-transform:uppercase;letter-spacing:.8px;font-weight:700;padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:7px}
+.sc-type-morgen{background:rgba(96,176,250,.18);color:#60b0fa}
+.sc-type-mellom{background:rgba(61,220,132,.15);color:#3ddc84}
+.sc-type-kveld{background:rgba(240,96,96,.18);color:#f06060}
 .empty-state{padding:36px 20px;text-align:center;color:var(--mu);font-size:13px;line-height:1.8}
 .empty-state .ico{font-size:30px;margin-bottom:10px}
 
@@ -626,7 +631,7 @@ function renderCalendar() {
       var dot  = document.createElement('div'); dot.className = 'dot'; div.appendChild(dot);
       var mini = document.createElement('div'); mini.className = 'mini';
       var ctRaw = shiftType(shifts[key].s, shifts[key].e);
-      mini.textContent = fShort(shifts[key].c.totKr) + (ctRaw ? ' ' + (ctRaw === 'morgen' ? 'mor' : ctRaw === 'mellom' ? 'mid' : 'kv') : '');
+      mini.textContent = fShort(shifts[key].c.totKr) + (ctRaw ? ' ' + (ctRaw === 'morgen' ? 'Morgen' : ctRaw === 'mellom' ? 'Mellom' : 'Kveld') : '');
       div.appendChild(mini);
     }
 
@@ -683,16 +688,24 @@ function renderList() {
     var d   = parseInt(k.split('-')[2]);
     var dt  = new Date(cY, cM, d);
     var dow = (dt.getDay() + 6) % 7;
-    var sub = hasTax && s.c
-      ? '<div class="sc-sub net">' + fKr(s.c.netKr) + ' netto</div>'
-      : '<div class="sc-sub">'     + (s.c ? fH(s.c.totH) : '') + '</div>';
     var amt = s.c ? fKr(s.c.totKr) : '—';
+    var hoursStr = s.c ? fH(s.c.totH) : '';
     var sType = shiftType(s.s, s.e);
     var sTypeTxt = sType === 'morgen' ? 'Morgen' : sType === 'mellom' ? 'Mellom' : sType === 'kveld' ? 'Kveld' : '';
+    var typeBadge = sTypeTxt ? '<div class="sc-type sc-type-' + sType + '">' + sTypeTxt + '</div>' : '';
+    var rightSub = hasTax && s.c
+      ? '<div class="sc-sub net">' + fKr(s.c.netKr) + ' netto</div>'
+      : (hoursStr ? '<div class="sc-sub">' + hoursStr + '</div>' : '');
     html += '<div class="sc" data-key="' + k + '" data-d="' + d + '" data-dow="' + dow + '">'
-      + '<div><div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
-      + '<div class="sc-time">' + (sTypeTxt ? sTypeTxt + ' · ' : '') + s.s + ' – ' + s.e + (s.c ? ' · ' + fH(s.c.totH) : '') + '</div></div>'
-      + '<div><div class="sc-amt">' + amt + '</div>' + sub + '</div>'
+      + typeBadge
+      + '<div class="sc-row">'
+      +   '<div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
+      +   '<div class="sc-time">' + s.s + ' – ' + s.e + '</div>'
+      + '</div>'
+      + '<div class="sc-row" style="margin-top:5px">'
+      +   '<div class="sc-amt">' + amt + '</div>'
+      +   rightSub
+      + '</div>'
       + '</div>';
   }
 
