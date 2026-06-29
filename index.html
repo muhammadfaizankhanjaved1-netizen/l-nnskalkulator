@@ -576,11 +576,10 @@ function fShort(n) {
 
 function shiftType(startStr, endStr) {
   if (!startStr || !endStr) return null;
-  var sh = parseInt(startStr.split(':')[0]);
   var ep = endStr.split(':');
   var endMin = parseInt(ep[0]) * 60 + parseInt(ep[1]);
   if (endMin >= 20 * 60) return 'kveld';
-  if (sh < 10) return 'morgen';
+  if (endMin <= 16 * 60) return 'morgen';
   return 'mellom';
 }
 var SHIFT_TYPE_LABEL = { morgen: 'Morgen', mellom: 'Mellom', kveld: 'Kveld' };
@@ -630,8 +629,7 @@ function renderCalendar() {
     if (hasShift && shifts[key].c) {
       var dot  = document.createElement('div'); dot.className = 'dot'; div.appendChild(dot);
       var mini = document.createElement('div'); mini.className = 'mini';
-      var ctRaw = shiftType(shifts[key].s, shifts[key].e);
-      mini.textContent = fShort(shifts[key].c.totKr) + (ctRaw ? ' ' + (ctRaw === 'morgen' ? 'Morgen' : ctRaw === 'mellom' ? 'Mellom' : 'Kveld') : '');
+      mini.textContent = fShort(shifts[key].c.totKr);
       div.appendChild(mini);
     }
 
