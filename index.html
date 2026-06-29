@@ -102,14 +102,14 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
 .empty-state .ico{font-size:30px;margin-bottom:10px}
 
 /* SHIFT TYPE BADGE */
-.type-badge{font-size:9px;font-family:var(--mo);text-transform:uppercase;letter-spacing:.8px;padding:2px 7px;border-radius:4px;font-weight:600;display:inline-block;margin-bottom:5px}
-.type-morgen{background:rgba(96,176,250,.15);color:var(--blue)}
-.type-mellom{background:rgba(61,220,132,.12);color:var(--ac)}
-.type-kveld{background:rgba(240,96,96,.1);color:var(--red)}
-.cal-type{font-size:6px;font-family:var(--mo);text-transform:uppercase;line-height:1;margin-top:1px}
-.cal-type-morgen{color:var(--blue)}
-.cal-type-mellom{color:var(--ac)}
-.cal-type-kveld{color:var(--red)}
+.type-badge{font-size:10px;font-family:var(--mo);text-transform:uppercase;letter-spacing:.8px;padding:3px 8px;border-radius:5px;font-weight:700;display:block;width:fit-content;margin-bottom:6px}
+.type-morgen{background:rgba(96,176,250,.25);color:#60b0fa}
+.type-mellom{background:rgba(61,220,132,.22);color:#3ddc84}
+.type-kveld{background:rgba(240,96,96,.22);color:#f06060}
+.cal-type{font-size:7px;font-family:var(--mo);text-transform:uppercase;line-height:1;margin-top:2px;padding:1px 3px;border-radius:2px}
+.cal-type-morgen{color:#60b0fa;background:rgba(96,176,250,.18)}
+.cal-type-mellom{color:#3ddc84;background:rgba(61,220,132,.15)}
+.cal-type-kveld{color:#f06060;background:rgba(240,96,96,.18)}
 
 /* OVERLAY */
 .overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);z-index:100;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -630,7 +630,7 @@ function renderCalendar() {
       if (ct) {
         var ctEl = document.createElement('div');
         ctEl.className = 'cal-type cal-type-' + ct;
-        ctEl.textContent = ct === 'morgen' ? 'M' : ct === 'mellom' ? 'ML' : 'K';
+        ctEl.textContent = ct === 'morgen' ? 'mor' : ct === 'mellom' ? 'mid' : 'kv';
         div.appendChild(ctEl);
       }
     }
