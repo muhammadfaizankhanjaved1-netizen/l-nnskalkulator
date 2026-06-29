@@ -631,7 +631,7 @@ function renderCalendar() {
         var ctC = ctRaw === 'morgen' ? '#60b0fa' : ctRaw === 'mellom' ? '#3ddc84' : '#f06060';
         var ctLbl = ctRaw === 'morgen' ? 'Morgen' : ctRaw === 'mellom' ? 'Mellom' : 'Kveld';
         var ctEl = document.createElement('div');
-        ctEl.style.cssText = 'font-size:6px;font-family:monospace;text-transform:uppercase;letter-spacing:.4px;font-weight:700;padding:1px 3px;border-radius:2px;margin-bottom:2px;color:' + ctC + ';background:rgba(128,128,128,.13)';
+        ctEl.style.cssText = 'font-size:7px;font-family:monospace;text-transform:uppercase;letter-spacing:.4px;font-weight:700;padding:1px 4px;border-radius:3px;margin-bottom:3px;color:' + ctC + ';background:rgba(128,128,128,.18)';
         ctEl.textContent = ctLbl;
         div.appendChild(ctEl);
       }
