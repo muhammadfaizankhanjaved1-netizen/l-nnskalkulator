@@ -625,15 +625,9 @@ function renderCalendar() {
     if (hasShift && shifts[key].c) {
       var dot  = document.createElement('div'); dot.className = 'dot'; div.appendChild(dot);
       var mini = document.createElement('div'); mini.className = 'mini';
-      mini.textContent = fShort(shifts[key].c.totKr); div.appendChild(mini);
-      var ct = shiftType(shifts[key].s, shifts[key].e);
-      if (ct) {
-        var ctColors = { morgen:'#60b0fa', mellom:'#3ddc84', kveld:'#f06060' };
-        var ctEl = document.createElement('div');
-        ctEl.style.cssText = 'font-size:7px;font-family:monospace;text-transform:uppercase;margin-top:2px;padding:1px 3px;border-radius:2px;color:' + ctColors[ct] + ';background:rgba(128,128,128,0.2)';
-        ctEl.textContent = ct === 'morgen' ? 'mor' : ct === 'mellom' ? 'mid' : 'kv';
-        div.appendChild(ctEl);
-      }
+      var ctRaw = shiftType(shifts[key].s, shifts[key].e);
+      mini.textContent = fShort(shifts[key].c.totKr) + (ctRaw ? ' ' + (ctRaw === 'morgen' ? 'mor' : ctRaw === 'mellom' ? 'mid' : 'kv') : '');
+      div.appendChild(mini);
     }
 
     (function(dd, ddow, kk){ div.onclick = function(){ openModal(dd, ddow, kk); }; })(d, dow, key);
@@ -694,12 +688,10 @@ function renderList() {
       : '<div class="sc-sub">'     + (s.c ? fH(s.c.totH) : '') + '</div>';
     var amt = s.c ? fKr(s.c.totKr) : '—';
     var sType = shiftType(s.s, s.e);
-    var stColors = { morgen:'#60b0fa', mellom:'#3ddc84', kveld:'#f06060' };
-    var stBg = { morgen:'rgba(96,176,250,0.15)', mellom:'rgba(61,220,132,0.15)', kveld:'rgba(240,96,96,0.15)' };
-    var sBadge = sType ? '<div style="display:inline-block;font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:5px;color:' + stColors[sType] + ';background:' + stBg[sType] + '">' + SHIFT_TYPE_LABEL[sType] + '</div>' : '';
+    var sTypeTxt = sType === 'morgen' ? 'Morgen' : sType === 'mellom' ? 'Mellom' : sType === 'kveld' ? 'Kveld' : '';
     html += '<div class="sc" data-key="' + k + '" data-d="' + d + '" data-dow="' + dow + '">'
-      + '<div>' + sBadge + '<div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
-      + '<div class="sc-time">' + s.s + ' – ' + s.e + (s.c ? ' · ' + fH(s.c.totH) : '') + '</div></div>'
+      + '<div><div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
+      + '<div class="sc-time">' + (sTypeTxt ? sTypeTxt + ' · ' : '') + s.s + ' – ' + s.e + (s.c ? ' · ' + fH(s.c.totH) : '') + '</div></div>'
       + '<div><div class="sc-amt">' + amt + '</div>' + sub + '</div>'
       + '</div>';
   }
