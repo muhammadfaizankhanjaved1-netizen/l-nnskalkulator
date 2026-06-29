@@ -101,6 +101,16 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sa);-webkit-font-smo
 .empty-state{padding:36px 20px;text-align:center;color:var(--mu);font-size:13px;line-height:1.8}
 .empty-state .ico{font-size:30px;margin-bottom:10px}
 
+/* SHIFT TYPE BADGE */
+.type-badge{font-size:9px;font-family:var(--mo);text-transform:uppercase;letter-spacing:.8px;padding:2px 7px;border-radius:4px;font-weight:600;display:inline-block;margin-bottom:5px}
+.type-morgen{background:rgba(96,176,250,.15);color:var(--blue)}
+.type-mellom{background:rgba(61,220,132,.12);color:var(--ac)}
+.type-kveld{background:rgba(240,96,96,.1);color:var(--red)}
+.cal-type{font-size:6px;font-family:var(--mo);text-transform:uppercase;line-height:1;margin-top:1px}
+.cal-type-morgen{color:var(--blue)}
+.cal-type-mellom{color:var(--ac)}
+.cal-type-kveld{color:var(--red)}
+
 /* OVERLAY */
 .overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);z-index:100;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .overlay.open{display:-webkit-flex;display:flex}
@@ -559,6 +569,17 @@ function fShort(n) {
   return Math.round(n).toString();
 }
 
+function shiftType(startStr, endStr) {
+  if (!startStr || !endStr) return null;
+  var sh = parseInt(startStr.split(':')[0]);
+  var ep = endStr.split(':');
+  var endMin = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+  if (endMin >= 20 * 60) return 'kveld';
+  if (sh < 10) return 'morgen';
+  return 'mellom';
+}
+var SHIFT_TYPE_LABEL = { morgen: 'Morgen', mellom: 'Mellom', kveld: 'Kveld' };
+
 /* ─── RECALC ALL ─── */
 function recalcAll() {
   for (var k in shifts) {
@@ -605,6 +626,13 @@ function renderCalendar() {
       var dot  = document.createElement('div'); dot.className = 'dot'; div.appendChild(dot);
       var mini = document.createElement('div'); mini.className = 'mini';
       mini.textContent = fShort(shifts[key].c.totKr); div.appendChild(mini);
+      var ct = shiftType(shifts[key].s, shifts[key].e);
+      if (ct) {
+        var ctEl = document.createElement('div');
+        ctEl.className = 'cal-type cal-type-' + ct;
+        ctEl.textContent = ct === 'morgen' ? 'M' : ct === 'mellom' ? 'ML' : 'K';
+        div.appendChild(ctEl);
+      }
     }
 
     (function(dd, ddow, kk){ div.onclick = function(){ openModal(dd, ddow, kk); }; })(d, dow, key);
@@ -664,8 +692,10 @@ function renderList() {
       ? '<div class="sc-sub net">' + fKr(s.c.netKr) + ' netto</div>'
       : '<div class="sc-sub">'     + (s.c ? fH(s.c.totH) : '') + '</div>';
     var amt = s.c ? fKr(s.c.totKr) : '—';
+    var sType = shiftType(s.s, s.e);
+    var sBadge = sType ? '<span class="type-badge type-' + sType + '">' + SHIFT_TYPE_LABEL[sType] + '</span>' : '';
     html += '<div class="sc" data-key="' + k + '" data-d="' + d + '" data-dow="' + dow + '">'
-      + '<div><div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
+      + '<div>' + sBadge + '<div class="sc-day">' + DN[dow] + ' ' + d + '. ' + MN[cM].toLowerCase() + '</div>'
       + '<div class="sc-time">' + s.s + ' – ' + s.e + (s.c ? ' · ' + fH(s.c.totH) : '') + '</div></div>'
       + '<div><div class="sc-amt">' + amt + '</div>' + sub + '</div>'
       + '</div>';
